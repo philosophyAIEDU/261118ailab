@@ -35,6 +35,7 @@ jobs:
         env:
           INPUT_TAG: ${{ inputs.tag }}
           HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          GH_TOKEN: ${{ github.token }}
           PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
         run: |
           TAG="${INPUT_TAG:-$GITHUB_REF_NAME}"
@@ -44,6 +45,11 @@ jobs:
           [ "$HAS_KEY" = "true" ] || { echo "TAURI_SIGNING_PRIVATE_KEY 비밀값이 없습니다. RELEASE_CHECKLIST.md를 참고하세요."; exit 1; }
           [ -n "$PUBKEY" ] || { echo "TAURI_UPDATER_PUBKEY 변수가 없습니다."; exit 1; }
           [ -f "docs/release-notes/$TAG.md" ] || { echo "릴리스 노트가 없습니다: docs/release-notes/$TAG.md"; exit 1; }
+          # 이전 실행이 남긴 "초안(draft)" 릴리스만 지운다 (게시된 릴리스는 건드리지 않음)
+          if [ "$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null)" = "true" ]; then
+            echo "이전 실패로 남은 초안을 지웁니다: $TAG"
+            gh release delete "$TAG" --yes
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           [[ "$TAG" == *-* ]] && echo "prerelease=true" >> "$GITHUB_OUTPUT" || echo "prerelease=false" >> "$GITHUB_OUTPUT"
 
@@ -74,17 +80,33 @@ jobs:
           PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
         run: |
           jq -n --arg k "$PUBKEY" '{bundle:{createUpdaterArtifacts:true},plugins:{updater:{pubkey:$k}}}' > src-tauri/tauri.release.conf.json
-      - uses: tauri-apps/tauri-action@v0
+      # Apple 서명·공증: 인증서가 실제로 등록된 경우에만 켠다
+      # (등록되지 않은 비밀값은 빈 문자열로 전달되어, 그대로 넘기면 서명 단계가 실패한다)
+      - name: macOS 서명 정보 (등록된 경우만)
+        if: matrix.os == 'macos-latest'
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+              val="${!v}"
+              [ -n "$val" ] && { echo "$v<<__EOF__"; echo "$val"; echo "__EOF__"; } >> "$GITHUB_ENV"
+            done
+            echo "Apple 서명 사용"
+          else
+            echo "Apple 인증서가 없어 서명 없이 빌드합니다 (설치 시 Gatekeeper 경고 가능)"
+          fi
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ needs.check.outputs.tag }}
           releaseName: "교수님만의 AI 연구실 ${{ needs.check.outputs.tag }}"
@@ -92,6 +114,8 @@ jobs:
           releaseDraft: true
           prerelease: ${{ needs.check.outputs.prerelease == 'true' }}
           includeUpdaterJson: true
+          # GitHub는 파일 이름의 한글을 지우므로 영문 이름으로 올린다
+          assetNamePattern: "PhilosophyResearchHub_[version]_[arch][setup][ext]"
           args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
 
   publish:
