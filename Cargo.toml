@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = ["crates/core", "src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["필로소피 AI 교육 (Philosophy AI Education)"]
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+strip = true
+codegen-units = 4

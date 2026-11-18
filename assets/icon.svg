@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="#17263D"/>
+  <!-- 펼친 책 -->
+  <path d="M512 330 C 430 280 320 270 230 290 L 230 720 C 320 700 430 710 512 760 Z" fill="#F7F4ED"/>
+  <path d="M512 330 C 594 280 704 270 794 290 L 794 720 C 704 700 594 710 512 760 Z" fill="#EDE7DA"/>
+  <path d="M512 330 L 512 760" stroke="#C7A05A" stroke-width="10"/>
+  <!-- 연결(지식 그래프) -->
+  <g stroke="#7155A4" stroke-width="16" stroke-linecap="round">
+    <line x1="330" y1="430" x2="420" y2="560"/>
+    <line x1="420" y1="560" x2="610" y2="470"/>
+    <line x1="610" y1="470" x2="700" y2="600"/>
+  </g>
+  <g>
+    <circle cx="330" cy="430" r="34" fill="#4D8D88"/>
+    <circle cx="420" cy="560" r="34" fill="#7155A4"/>
+    <circle cx="610" cy="470" r="40" fill="#C7A05A"/>
+    <circle cx="700" cy="600" r="34" fill="#4D8D88"/>
+  </g>
+</svg>

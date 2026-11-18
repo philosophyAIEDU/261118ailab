@@ -1,0 +1,38 @@
+[package]
+name = "prh-core"
+description = "Philosophy Research Hub — 핵심 로직 (데스크톱 프레임워크 비의존)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+argon2 = "0.5"
+chacha20poly1305 = "0.10"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+csv = "1"
+docx-rs = "0.4"
+encoding_rs = "0.8"
+futures-util = "0.3"
+hex = "0.4"
+lopdf = "0.38"
+pdf-extract = "0.10"
+quick-xml = "0.37"
+rand = "0.8"
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream"] }
+rusqlite = { version = "0.32", features = ["bundled", "backup"] }
+rust_xlsxwriter = "0.79"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+sysinfo = "0.33"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+url = "2"
+uuid = { version = "1", features = ["v4"] }
+walkdir = "2"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util"] }

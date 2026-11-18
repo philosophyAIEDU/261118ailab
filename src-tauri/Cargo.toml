@@ -1,0 +1,28 @@
+[package]
+name = "philosophy-research-hub"
+description = "교수님만의 AI 연구실 (Philosophy Research Hub)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[lib]
+name = "philosophy_research_hub_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+prh-core = { path = "../crates/core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-process = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2"
+tokio = { version = "1", features = ["sync", "rt"] }
+reqwest = { version = "0.12", default-features = false }
+url = "2"

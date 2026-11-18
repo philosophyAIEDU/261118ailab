@@ -1,0 +1,56 @@
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+@import "tailwindcss";
+
+/* "조용하고 따뜻한 개인 연구실" — 과한 그림자·애니메이션 없이 가독성 우선 */
+@theme {
+  --color-ivory: #F7F4ED;
+  --color-paper: #FFFDF8;
+  --color-line: #E4DDCD;
+  --color-navy: #17263D;
+  --color-navy-soft: #2C3E5A;
+  --color-violet: #7155A4;
+  --color-violet-soft: #EEE9F6;
+  --color-gold: #C7A05A;
+  --color-gold-soft: #F6EEDC;
+  --color-teal: #4D8D88;
+  --color-teal-soft: #E3EFEE;
+  --color-ink: #1F2430;
+  --color-muted: #6B6F78;
+  --color-danger: #A8443A;
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+html, body, #root { height: 100%; }
+body { background: var(--color-ivory); color: var(--color-ink); font-family: var(--font-sans); font-size: 14.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+::selection { background: #d9cff0; }
+:focus-visible { outline: 2px solid var(--color-violet); outline-offset: 2px; }
+input, textarea, select { font: inherit; }
+.scroll-thin::-webkit-scrollbar { width: 9px; height: 9px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: #d8d0bf; border-radius: 9px; }
+
+/* Markdown 본문 */
+.prose-lab { line-height: 1.75; }
+.prose-lab h1 { font-size: 1.35rem; font-weight: 700; margin: 1rem 0 .5rem; color: var(--color-navy); }
+.prose-lab h2 { font-size: 1.15rem; font-weight: 700; margin: 1rem 0 .4rem; color: var(--color-navy); }
+.prose-lab h3 { font-size: 1.02rem; font-weight: 700; margin: .8rem 0 .3rem; }
+.prose-lab p { margin: .45rem 0; }
+.prose-lab ul { list-style: disc; padding-left: 1.3rem; margin: .4rem 0; }
+.prose-lab ol { list-style: decimal; padding-left: 1.3rem; margin: .4rem 0; }
+.prose-lab blockquote { border-left: 3px solid var(--color-gold); padding-left: .8rem; color: var(--color-muted); margin: .5rem 0; }
+.prose-lab code { background: #efe9dc; padding: 0 .3rem; border-radius: 4px; font-size: .9em; }
+.prose-lab table { border-collapse: collapse; margin: .6rem 0; }
+.prose-lab th, .prose-lab td { border: 1px solid var(--color-line); padding: .3rem .5rem; }
+.prose-lab a { color: var(--color-violet); text-decoration: underline; }
+
+/* PDF 뷰어 (PDF.js 텍스트 레이어 규칙 포함) */
+.pdf-page { position: relative; margin: 0 auto 14px; background: white; box-shadow: 0 1px 3px rgba(23,38,61,.12); }
+.pdf-page canvas { display: block; }
+.textLayer { position: absolute; text-align: initial; inset: 0; overflow: clip; opacity: 1; line-height: 1; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; z-index: 0;
+  --min-font-size: 1; --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size)); --min-font-size-inv: calc(1 / var(--min-font-size)); }
+.textLayer :is(span, br) { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+.textLayer > :not(.markedContent), .textLayer .markedContent span:not(.markedContent) { z-index: 1; --font-height: 0; font-size: calc(var(--text-scale-factor) * var(--font-height)); --scale-x: 1; --rotate: 0deg; transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv)); }
+.textLayer .markedContent { display: contents; }
+.textLayer ::selection { background: rgba(113,85,164,.35); }
+.textLayer span.src-hit { background: rgba(199,160,90,.42); border-radius: 2px; }
+.textLayer span.find-hit { background: rgba(77,141,136,.40); }
+.pdf-page .hl { position: absolute; background: rgba(113,85,164,.24); pointer-events: none; mix-blend-mode: multiply; z-index: 2; }

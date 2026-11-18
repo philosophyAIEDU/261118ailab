@@ -1,0 +1,28 @@
+# 빌드 산출물
+/target
+/dist
+/node_modules
+/src-tauri/gen
+/public/pdfjs
+*.tsbuildinfo
+
+# 비밀정보 — 업데이트 서명 개인키는 절대 커밋하지 말 것 (GitHub Actions Secrets 사용)
+*.key
+*.key.pub.bak
+.env
+.env.*
+/src-tauri/*.key
+
+# 개인 연구자료·모델 파일·백업
+*.prhbak
+*.prhbak.enc
+*.gguf
+/research-data
+/PhilosophyResearchHub*
+
+# 데모 생성 중간 파일
+/demo/__pycache__
+
+# OS
+.DS_Store
+Thumbs.db
