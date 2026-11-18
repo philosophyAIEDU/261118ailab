@@ -6,6 +6,13 @@ name: preview
 on:
   push:
     tags: ["v*-preview*"]
+  # GitHub 웹 화면(Actions → preview → Run workflow)에서도 실행할 수 있다. 태그는 자동으로 만든다.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "게시할 시험판 태그 (예: v0.1.0-preview.1)"
+        required: true
+        default: "v0.1.0-preview.1"
 
 permissions:
   contents: write
@@ -52,8 +59,9 @@ jobs:
       - name: 시험판 게시
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-preview\.[0-9]+$ ]] || { echo "태그 형식 오류: $TAG"; exit 1; }
           VERSION="${TAG#v}"
           notes="docs/release-notes/$TAG.md"
           [ -f "$notes" ] || { echo "릴리스 노트가 없습니다: $notes"; exit 1; }
@@ -65,6 +73,6 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" out/* --clobber
           else
-            gh release create "$TAG" out/* --prerelease --verify-tag \
+            gh release create "$TAG" out/* --prerelease --target "$GITHUB_SHA" \
               --title "교수님만의 AI 연구실 $TAG (미리보기 시험판)" --notes-file "$notes"
           fi
