@@ -1,0 +1,112 @@
+# 배포: v* 태그를 올리면 서명된 업데이트 산출물과 함께 GitHub Release를 만든다.
+#
+# 필요한 설정 (저장소 Settings → Secrets and variables → Actions):
+#   Secrets   TAURI_SIGNING_PRIVATE_KEY           업데이트 서명 개인키 (`npx tauri signer generate`로 생성, 절대 커밋 금지)
+#             TAURI_SIGNING_PRIVATE_KEY_PASSWORD  개인키 암호
+#   Variables TAURI_UPDATER_PUBKEY                업데이트 서명 공개키 (앱에 내장되어 서명을 검증)
+#   (선택) macOS 서명·공증: APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY, APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID
+#
+# 채널: 태그에 '-'가 있으면(예: v0.2.0-beta.1) 시험판(prerelease)으로 게시한다.
+#   안정 채널 → releases/latest/download/latest.json (GitHub "최신 릴리스" = 시험판 제외)
+#   베타 채널 → releases/download/updater-beta/latest.json (모든 새 버전으로 갱신)
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "게시할 태그 (예: v0.1.0 또는 v0.2.0-beta.1)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.t.outputs.tag }}
+      prerelease: ${{ steps.t.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: t
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+          PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+        run: |
+          TAG="${INPUT_TAG:-$GITHUB_REF_NAME}"
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "태그 형식 오류: $TAG"; exit 1; }
+          VERSION=$(jq -r .version src-tauri/tauri.conf.json)
+          [ "v$VERSION" = "${TAG%%-*}" ] || [ "v$VERSION" = "$TAG" ] || { echo "tauri.conf.json 버전($VERSION)과 태그($TAG)가 다릅니다"; exit 1; }
+          [ "$HAS_KEY" = "true" ] || { echo "TAURI_SIGNING_PRIVATE_KEY 비밀값이 없습니다. RELEASE_CHECKLIST.md를 참고하세요."; exit 1; }
+          [ -n "$PUBKEY" ] || { echo "TAURI_UPDATER_PUBKEY 변수가 없습니다."; exit 1; }
+          [ -f "docs/release-notes/$TAG.md" ] || { echo "릴리스 노트가 없습니다: docs/release-notes/$TAG.md"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          [[ "$TAG" == *-* ]] && echo "prerelease=true" >> "$GITHUB_OUTPUT" || echo "prerelease=false" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: "--bundles nsis"
+          - os: macos-latest
+            args: "--target universal-apple-darwin --bundles app,dmg"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ needs.check.outputs.tag }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: swatinem/rust-cache@v2
+      - run: npm ci
+      - name: 배포용 설정 (업데이트 산출물 + 공개키)
+        shell: bash
+        env:
+          PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+        run: |
+          jq -n --arg k "$PUBKEY" '{bundle:{createUpdaterArtifacts:true},plugins:{updater:{pubkey:$k}}}' > src-tauri/tauri.release.conf.json
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: ${{ needs.check.outputs.tag }}
+          releaseName: "교수님만의 AI 연구실 ${{ needs.check.outputs.tag }}"
+          releaseBodyPath: docs/release-notes/${{ needs.check.outputs.tag }}.md
+          releaseDraft: true
+          prerelease: ${{ needs.check.outputs.prerelease == 'true' }}
+          includeUpdaterJson: true
+          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
+
+  publish:
+    needs: [check, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 초안 게시 + 베타 채널 갱신
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh release edit "$TAG" -R "$REPO" --draft=false
+          mkdir u && gh release download "$TAG" -R "$REPO" -p latest.json -D u
+          if ! gh release view updater-beta -R "$REPO" >/dev/null 2>&1; then
+            gh release create updater-beta -R "$REPO" --prerelease --title "업데이트 채널: 베타 (자동 관리)" --notes "베타 채널 업데이트 정보 파일만 보관합니다. 직접 내려받지 마세요."
+          fi
+          gh release upload updater-beta u/latest.json -R "$REPO" --clobber

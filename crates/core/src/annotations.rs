@@ -77,3 +77,29 @@ pub fn list(conn: &Connection, paper_id: &str) -> AppResult<Vec<Annotation>> {
         .collect::<Result<_, _>>()?;
     Ok(v)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::library::tests::{lib, write_pdf};
+
+    #[test]
+    fn add_update_delete_and_cascade() {
+        let (d, paths, mut c) = lib();
+        let f = write_pdf(d.path(), "a.pdf", &["Annotation test page one with enough text", "Second page text for annotations"], Some("Ann"));
+        let pid = crate::library::import_file(&mut c, &paths, &f).unwrap().paper_id.unwrap();
+        let a = add(&c, &AnnotationInput { paper_id: pid.clone(), page: 2, kind: "highlight".into(), text: "Second page".into(), note: "".into(), color: "violet".into(), rects: serde_json::json!([{"x":0.1,"y":0.2,"w":0.3,"h":0.02}]) }).unwrap();
+        assert_eq!(a.rects[0]["w"], 0.3);
+        add(&c, &AnnotationInput { paper_id: pid.clone(), page: 1, kind: "bookmark".into(), text: "".into(), note: "".into(), color: "".into(), rects: serde_json::Value::Null }).unwrap();
+        assert!(add(&c, &AnnotationInput { paper_id: pid.clone(), page: 0, kind: "memo".into(), text: "".into(), note: "".into(), color: "".into(), rects: serde_json::Value::Null }).is_err());
+        assert!(add(&c, &AnnotationInput { paper_id: pid.clone(), page: 1, kind: "evil".into(), text: "".into(), note: "".into(), color: "".into(), rects: serde_json::Value::Null }).is_err());
+        update_note(&c, &a.id, "중요").unwrap();
+        let l = list(&c, &pid).unwrap();
+        assert_eq!(l.len(), 2);
+        assert_eq!(l[0].page, 1, "쪽 순서");
+        assert_eq!(l[1].note, "중요");
+        delete(&c, &l[0].id).unwrap();
+        crate::library::delete_paper(&mut c, &paths, &pid).unwrap();
+        assert_eq!(list(&c, &pid).unwrap().len(), 0, "논문 삭제 시 주석도 삭제");
+    }
+}
