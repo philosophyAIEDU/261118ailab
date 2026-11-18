@@ -6,7 +6,8 @@
 //! - 참고문헌 목록은 AI가 만들지 않고, 선택한 논문의 저장된 서지정보로만 만든다.
 use crate::error::{AppError, AppResult};
 use crate::library::Paper;
-use crate::ollama::{ChatMessage, Ollama};
+use crate::llm::Llm;
+use crate::ollama::ChatMessage;
 use crate::rag::{self, Citation};
 use crate::search;
 use rusqlite::{params, Connection};
@@ -137,7 +138,7 @@ pub fn messages(topic: &str, papers: &[Paper], groups: &[Group], sources: &[rag:
     ]
 }
 
-pub async fn run(db: &Mutex<Connection>, ollama: &Ollama, model: &str, paper_ids: &[String], topic: &str, cancel: Arc<AtomicBool>, on_token: impl FnMut(&str) + Send) -> AppResult<Review> {
+pub async fn run(db: &Mutex<Connection>, llm: &Llm, paper_ids: &[String], topic: &str, cancel: Arc<AtomicBool>, on_token: impl FnMut(&str) + Send) -> AppResult<Review> {
     if paper_ids.len() < 2 {
         return Err(AppError::Invalid("문헌고찰에는 논문을 2편 이상 선택해 주세요".into()));
     }
@@ -166,7 +167,7 @@ pub async fn run(db: &Mutex<Connection>, ollama: &Ollama, model: &str, paper_ids
     }
     let groups = group_papers(&papers);
     let sources = rag::to_sources(&hits);
-    let raw = ollama.chat(model, &messages(topic, &papers, &groups, &sources), 0.3, Some(16384), false, cancel, on_token).await?;
+    let raw = llm.chat(&messages(topic, &papers, &groups, &sources), 0.3, Some(16384), false, cancel, on_token).await?;
     let v = rag::verify(&raw, &sources);
     let r = Review {
         id: crate::new_id(),
@@ -179,7 +180,7 @@ pub async fn run(db: &Mutex<Connection>, ollama: &Ollama, model: &str, paper_ids
         removed_markers: v.removed_markers,
         removed_references: v.removed_references,
         references: { let mut r: Vec<String> = papers.iter().map(format_reference).collect(); r.sort(); r },
-        model: model.into(),
+        model: llm.label(),
         created_at: crate::now(),
         notice: DRAFT_NOTICE.into(),
     };

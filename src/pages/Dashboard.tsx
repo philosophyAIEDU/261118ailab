@@ -93,10 +93,10 @@ export default function Dashboard() {
             {!ai ? <Spinner label="확인 중" /> : (
               <div className="space-y-1.5 text-sm">
                 <div className="flex items-center gap-2">로컬 AI(Ollama) {ai.health?.running ? <Badge tone="teal">실행 중 {ai.health.version ? `v${ai.health.version}` : ''}</Badge> : <Badge tone="danger">연결 안 됨</Badge>}</div>
-                <div>답변 생성 모델: {chat ? <b className="text-navy">{chat}</b> : <span className="text-muted">선택 안 됨</span>}</div>
+                <div>답변 생성: {d.settings.provider === 'gemini' ? <><b className="text-navy">{d.settings.gemini_model}</b> <Badge tone="violet">Gemini API · 클라우드</Badge></> : chat ? <b className="text-navy">{chat} (로컬)</b> : <span className="text-muted">선택 안 됨</span>}</div>
                 <div>임베딩 모델: {embed ? <b className="text-navy">{embed}</b> : <span className="text-muted">선택 안 됨</span>}</div>
                 {ai.running?.length > 0 && <div className="text-xs text-muted">메모리에 올라간 모델: {ai.running.map((r: any) => r.name).join(', ')}</div>}
-                <div className="pt-1 text-xs text-muted">클라우드 AI: 사용 안 함 — 연구자료는 외부로 전송되지 않습니다.</div>
+                <div className="pt-1 text-xs text-muted">{d.settings.provider === 'gemini' ? 'Gemini 사용 중: 질문과 관련 문단이 Google로 전송됩니다. 설정에서 로컬 AI로 되돌릴 수 있습니다.' : '클라우드 AI 사용 안 함 — 연구자료는 외부로 전송되지 않습니다.'}</div>
               </div>
             )}
           </Card>

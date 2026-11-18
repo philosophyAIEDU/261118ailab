@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { CloudBanner } from '../components/AiProvider';
 import { ExportButtons, PaperPicker, SourceCard } from '../components/common';
-import { api, errMsg, newJob, onJob, type AskResult, type Hit, type Mode, type Project } from '../lib/api';
+import { api, errMsg, newJob, onJob, type AskResult, type Hit, type Mode, type Project, type TodayUsage } from '../lib/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { fmtDate } from '../lib/format';
@@ -41,6 +42,8 @@ export default function Search() {
   const [hits, setHits] = useState<{ hits: Hit[]; notice: string | null } | null>(null);
   const [history, setHistory] = useState<AskResult[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  const [usage, setUsage] = useState<TodayUsage | null>(null);
+  const [notice, setNotice] = useState('');
   const job = useRef<string | null>(null);
 
   useEffect(() => {
@@ -50,6 +53,7 @@ export default function Search() {
     });
     api.projects().then(setProjects);
     api.settings().then(setSettings);
+    api.geminiUsage().then(setUsage).catch(() => {});
   }, [route.params?.resultId]);
 
   const run = async () => {
@@ -65,13 +69,15 @@ export default function Search() {
       } else {
         const id = newJob();
         job.current = id;
-        const un = await onJob(id, (e) => e.stage === 'token' && setStream((s) => s + e.message));
+        setNotice('');
+        const un = await onJob(id, (e) => { if (e.stage === 'token') setStream((s) => s + e.message); if (e.stage === 'notice') setNotice(e.message); });
         try {
           const r = await api.ask({ question: q, mode, paper_ids: scope, top_k: settings?.top_k ?? 8 }, id);
           setResult(r);
           setHistory((h) => [r, ...h.filter((x) => x.id !== r.id)].slice(0, 30));
         } finally {
           un();
+          api.geminiUsage().then(setUsage).catch(() => {});
         }
       }
     } catch (e) {
@@ -86,6 +92,7 @@ export default function Search() {
   return (
     <div>
       <PageHeader title="AI 연구 검색" subtitle="내 연구 라이브러리에 자연어로 질문하세요. AI는 실제로 검색된 원문만 근거로 답하고, 모든 출처는 PDF 쪽으로 연결됩니다." />
+      <CloudBanner settings={settings} usage={usage} />
       <Card className="mb-5">
         <textarea className={cx(inputCls, 'min-h-20 text-[15px]')} placeholder={EXAMPLE} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) run(); }} />
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -105,13 +112,14 @@ export default function Search() {
           {busy && aiOn ? <Button onClick={() => job.current && api.jobCancel(job.current)}>중단</Button> : null}
           <Button kind="primary" disabled={busy || !q.trim()} onClick={run}>{busy ? '검색 중…' : '검색'}</Button>
         </div>
-        {aiOn && settings && !settings.chat_model && <p className="mt-2 text-xs text-[#8a6a2c]">답변 생성 모델이 선택되지 않았습니다. 원문 검색 결과만 표시됩니다. <button className="underline" onClick={() => go('settings', { tab: 'ai' })}>AI 모델 설정</button></p>}
+        {aiOn && settings && settings.provider !== 'gemini' && !settings.chat_model && <p className="mt-2 text-xs text-[#8a6a2c]">답변 생성 모델이 선택되지 않았습니다. 원문 검색 결과만 표시됩니다. <button className="underline" onClick={() => go('settings', { tab: 'ai' })}>AI 모델 설정</button></p>}
       </Card>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
         <div>
           {busy && aiOn && (
             <Card className="mb-4" title={<span className="flex items-center gap-2">AI 답변 생성 중 <Badge tone="gold">검증 전 초안</Badge></span>}>
+              {notice && <p className="mb-2 text-xs text-[#7a5b22]">{notice}</p>}
               {stream ? <p className="text-sm whitespace-pre-wrap text-muted">{stream}</p> : <Spinner label="관련 문단을 찾는 중" />}
             </Card>
           )}

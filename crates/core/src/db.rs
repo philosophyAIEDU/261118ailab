@@ -172,6 +172,19 @@ const MIGRATIONS: &[&str] = &[
         created_at TEXT NOT NULL
     );
     "#,
+    // v2 — 클라우드 AI(Gemini) 하루 사용량 기록
+    r#"
+    CREATE TABLE ai_usage (
+        day TEXT NOT NULL,              -- 태평양 시간 기준 날짜 (무료 한도 초기화 기준)
+        provider TEXT NOT NULL,
+        model TEXT NOT NULL,
+        requests INTEGER NOT NULL DEFAULT 0,
+        input_tokens INTEGER NOT NULL DEFAULT 0,
+        output_tokens INTEGER NOT NULL DEFAULT 0,
+        errors INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (day, provider, model)
+    );
+    "#,
 ];
 
 pub fn latest_version() -> i64 {
@@ -302,6 +315,22 @@ mod tests {
         let (c, r) = open_with(&p, &[MIGRATIONS[0]]).unwrap();
         assert_eq!(r.from_version, 1);
         drop(c);
+    }
+
+    #[test]
+    fn real_v1_library_upgrades_with_data_and_backup() {
+        let d = tempfile::tempdir().unwrap();
+        let p = LibraryPaths::new(d.path());
+        p.ensure(false).unwrap();
+        let (c, _) = open_with(&p, &MIGRATIONS[..1]).unwrap();
+        c.execute("INSERT INTO notes(id,title,body,created_at,updated_at) VALUES ('n1','노트','본문','t','t')", []).unwrap();
+        drop(c);
+        let (c, r) = open(&p).unwrap();
+        assert_eq!((r.from_version, r.to_version), (1, latest_version()));
+        assert!(r.backup_path.unwrap().exists());
+        let t: String = c.query_row("SELECT title FROM notes WHERE id='n1'", [], |r| r.get(0)).unwrap();
+        assert_eq!(t, "노트");
+        c.execute("INSERT INTO ai_usage(day,provider,model,requests) VALUES ('2026-11-18','gemini','m',1)", []).unwrap();
     }
 
     #[test]

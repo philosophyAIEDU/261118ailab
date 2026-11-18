@@ -27,6 +27,20 @@ http.createServer((req, res) => {
   req.on('end', () => {
     const body = b ? JSON.parse(b) : {};
     const send = (o, code = 200) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(typeof o === 'string' ? o : JSON.stringify(o)); };
+    // 가짜 Gemini API (개발 빌드에서 PRH_GEMINI_BASE_URL로 연결)
+    if (req.url.startsWith('/v1beta/')) {
+      const key = req.headers['x-goog-api-key'] || '';
+      if (!String(key).startsWith('AIza') || String(key).includes('bad')) return send({ error: { code: 400, message: 'API key not valid.', details: [{ reason: 'API_KEY_INVALID' }] } }, 400);
+      if (req.method === 'GET') return send({ models: [{ name: 'models/gemini-3.8-flash' }, { name: 'models/gemini-3.5-flash-lite' }] });
+      const user = body.contents[0].parts[0].text;
+      const a = firstSentence(user, 'S1');
+      const reply = body.generationConfig && body.generationConfig.responseMimeType === 'application/json'
+        ? JSON.stringify({ purpose: { value: a, sources: ['S1'] } })
+        : `## Gemini 답변 (가짜, 테스트용)\n\n${a} [S1]`;
+      res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+      res.write(`data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: reply }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 800, candidatesTokenCount: 60 } })}\r\n\r\n`);
+      return res.end();
+    }
     if (req.url === '/api/version') return send({ version: '0.0.0-fake' });
     if (req.url === '/api/tags') return send({ models: [{ name: 'fake-chat:latest', size: 1000, details: { family: 'gemma3', parameter_size: '1B' } }, { name: 'fake-embed:latest', size: 500, details: { family: 'bert' } }] });
     if (req.url === '/api/ps') return send({ models: [] });

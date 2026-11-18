@@ -112,7 +112,7 @@ pub async fn reveal_library(app: AppHandle, state: State<'_, AppState>) -> R<()>
 #[tauri::command]
 pub async fn open_url(app: AppHandle, url: String) -> R<()> {
     use tauri_plugin_opener::OpenerExt;
-    const ALLOWED: &[&str] = &["https://ollama.com/download", "https://ollama.com/library", "https://github.com/philosophyAIEDU/", "https://www.youtube.com/@"];
+    const ALLOWED: &[&str] = &["https://ollama.com/download", "https://ollama.com/library", "https://github.com/philosophyAIEDU/", "https://www.youtube.com/@", "https://aistudio.google.com/", "https://ai.google.dev/"];
     if !ALLOWED.iter().any(|a| url.starts_with(a)) {
         return Err(AppError::Blocked("허용되지 않은 주소입니다".into()));
     }
@@ -314,6 +314,43 @@ fn ollama_for(s: &settings::Settings) -> R<ollama::Ollama> {
     ollama::Ollama::new(s.ollama_port)
 }
 
+/// Gemini 주소. 개발 빌드에서만 시험용 가짜 서버 주소(루프백)로 바꿀 수 있다.
+fn gemini_base() -> String {
+    #[cfg(debug_assertions)]
+    if let Ok(b) = std::env::var("PRH_GEMINI_BASE_URL") {
+        return b;
+    }
+    gemini::API_HOST.to_string()
+}
+
+/// 설정에 따라 답변 생성 AI를 만든다 (Gemini는 동의·키가 있을 때만). 없으면 None.
+fn llm_for(app: &AppHandle, state: &AppState, lib: &std::sync::Arc<Library>, s: &settings::Settings, job: &str) -> R<Option<llm::Llm>> {
+    if s.provider == "gemini" {
+        let key = crate::keystore::get(&state.config_dir)?.ok_or_else(|| AppError::Invalid("Gemini API 키가 저장되어 있지 않습니다. 설정 > AI 모델에서 키를 입력해 주세요.".into()))?;
+        let client = gemini::Gemini::with_base(&gemini_base(), &key)?;
+        let rpm = s.gemini_limits.get(&s.gemini_model).map(|l| l.rpm).unwrap_or(5);
+        let mut l = llm::Llm::gemini(client, s.gemini_model.clone(), rpm);
+        let lib2 = lib.clone();
+        l.usage = Some(std::sync::Arc::new(move |e| {
+            if let Ok(c) = lib2.conn() {
+                let _ = usage::record_now(&c, e);
+            }
+        }));
+        let app2 = app.clone();
+        let j = job.to_string();
+        l.notice = Some(std::sync::Arc::new(move |m| emit(&app2, ev(&j, "llm", "notice", 0, 0, m, Value::Null))));
+        return Ok(Some(l));
+    }
+    match &s.chat_model {
+        Some(m) => Ok(Some(llm::Llm::ollama(ollama_for(s)?, m.clone()))),
+        None => Ok(None),
+    }
+}
+
+fn require_llm(l: Option<llm::Llm>) -> R<llm::Llm> {
+    l.ok_or_else(|| AppError::Invalid("답변 생성 AI가 선택되지 않았습니다. 설정 > AI 모델에서 로컬 AI 모델을 고르거나 Gemini API를 설정해 주세요.".into()))
+}
+
 #[tauri::command]
 pub async fn search_passages(state: State<'_, AppState>, query: String, mode: search::Mode, limit: Option<usize>, paper_ids: Option<Vec<String>>) -> R<search::SearchOutcome> {
     let lib = state.lib()?;
@@ -341,8 +378,9 @@ pub async fn ask(app: AppHandle, state: State<'_, AppState>, req: rag::AskReques
         Some(m) => lib.index_for(m)?,
         None => None,
     };
+    let chat = llm_for(&app, &state, &lib, &s, &job)?;
     let cancel = state.job(&job);
-    let ai = rag::AiConfig { ollama: &ol, chat_model: s.chat_model.clone(), embed_model: s.embed_model.clone(), index: idx.as_deref() };
+    let ai = rag::AiConfig { llm: chat.as_ref(), ollama: &ol, embed_model: s.embed_model.clone(), index: idx.as_deref() };
     let app2 = app.clone();
     let job2 = job.clone();
     let r = rag::ask(&lib.db, &ai, &req, cancel, move |t| emit(&app2, ev(&job2, "ask", "token", 0, 0, t, Value::Null))).await;
@@ -401,6 +439,7 @@ pub async fn ai_status(state: State<'_, AppState>) -> R<Value> {
         "recommendation": rec,
         "catalog": models::CATALOG,
         "index": {"pending": pending, "total_chunks": total},
+        "gemini": gemini_info(&state, &lib, &s)?,
     }))
 }
 
@@ -477,20 +516,15 @@ pub async fn compare_aspects() -> R<Vec<Value>> {
     Ok(compare::ASPECTS.iter().map(|a| json!({"key": a.key, "label": a.label})).collect())
 }
 
-fn chat_model(s: &settings::Settings) -> R<String> {
-    s.chat_model.clone().ok_or_else(|| AppError::Invalid("답변 생성 모델을 먼저 선택해 주세요 (설정 > AI 모델)".into()))
-}
-
 #[tauri::command]
 pub async fn compare_run(app: AppHandle, state: State<'_, AppState>, paper_ids: Vec<String>, aspects: Vec<String>, title: String, job: String) -> R<compare::Comparison> {
     let lib = state.lib()?;
     let s = settings::load(&*lib.conn()?)?;
-    let model = chat_model(&s)?;
-    let ol = ollama_for(&s)?;
+    let chat = require_llm(llm_for(&app, &state, &lib, &s, &job)?)?;
     let cancel = state.job(&job);
     let app2 = app.clone();
     let j = job.clone();
-    let r = compare::run(&lib.db, &ol, &model, &paper_ids, &aspects, &title, cancel, move |d, t, name| emit(&app2, ev(&j, "compare", "progress", d, t, name, Value::Null))).await;
+    let r = compare::run(&lib.db, &chat, &paper_ids, &aspects, &title, cancel, move |d, t, name| emit(&app2, ev(&j, "compare", "progress", d, t, name, Value::Null))).await;
     state.end_job(&job);
     r
 }
@@ -547,8 +581,8 @@ pub async fn note_delete(state: State<'_, AppState>, id: String) -> R<()> {
 pub async fn note_ai_draft(app: AppHandle, state: State<'_, AppState>, paper_id: String, focus: String, job: String) -> R<Value> {
     let lib = state.lib()?;
     let s = settings::load(&*lib.conn()?)?;
-    let model = chat_model(&s)?;
-    let ol = ollama_for(&s)?;
+    let chat = require_llm(llm_for(&app, &state, &lib, &s, &job)?)?;
+    let model = chat.label();
     let (paper, hits) = {
         let c = lib.conn()?;
         (library::get_paper(&c, &paper_id)?, compare::gather(&c, &paper_id, &compare::aspect_list(&[]), 10)?)
@@ -560,7 +594,7 @@ pub async fn note_ai_draft(app: AppHandle, state: State<'_, AppState>, paper_id:
     let cancel = state.job(&job);
     let app2 = app.clone();
     let j = job.clone();
-    let raw = ol.chat(&model, &notes::draft_messages(&paper.title, &sources, &focus), 0.3, Some(8192), false, cancel, move |t| emit(&app2, ev(&j, "draft", "token", 0, 0, t, Value::Null))).await;
+    let raw = chat.chat(&notes::draft_messages(&paper.title, &sources, &focus), 0.3, Some(8192), false, cancel, move |t| emit(&app2, ev(&j, "draft", "token", 0, 0, t, Value::Null))).await;
     state.end_job(&job);
     let v = rag::verify(&raw?, &sources);
     let mut body = v.answer.clone();
@@ -648,12 +682,11 @@ pub async fn graph_unlink(state: State<'_, AppState>, link_id: String) -> R<()> 
 pub async fn review_run(app: AppHandle, state: State<'_, AppState>, paper_ids: Vec<String>, topic: String, job: String) -> R<review::Review> {
     let lib = state.lib()?;
     let s = settings::load(&*lib.conn()?)?;
-    let model = chat_model(&s)?;
-    let ol = ollama_for(&s)?;
+    let chat = require_llm(llm_for(&app, &state, &lib, &s, &job)?)?;
     let cancel = state.job(&job);
     let app2 = app.clone();
     let j = job.clone();
-    let r = review::run(&lib.db, &ol, &model, &paper_ids, &topic, cancel, move |t| emit(&app2, ev(&j, "review", "token", 0, 0, t, Value::Null))).await;
+    let r = review::run(&lib.db, &chat, &paper_ids, &topic, cancel, move |t| emit(&app2, ev(&j, "review", "token", 0, 0, t, Value::Null))).await;
     state.end_job(&job);
     r
 }
@@ -797,4 +830,77 @@ pub async fn backup_restore(state: State<'_, AppState>, path: String, password: 
     *lib.index.write().unwrap() = None;
     let _ = state.switch_to(&root, demo);
     Ok(report)
+}
+
+// ───────────────────────── Gemini API (선택) ─────────────────────────
+
+fn gemini_info(state: &AppState, lib: &Library, s: &settings::Settings) -> R<Value> {
+    let key = crate::keystore::get(&state.config_dir).ok().flatten();
+    let models: Vec<&str> = gemini::MODELS.iter().map(|m| m.0).collect();
+    let today = usage::today_now(&*lib.conn()?, &models, &s.gemini_limits)?;
+    Ok(json!({
+        "models": gemini::MODELS.iter().map(|(m, d)| json!({"id": m, "label": d})).collect::<Vec<_>>(),
+        "key_stored": key.is_some(),
+        "key_masked": key.as_deref().map(gemini::mask_key),
+        "key_backend": crate::keystore::backend(),
+        "usage": today,
+    }))
+}
+
+#[tauri::command]
+pub async fn gemini_usage(state: State<'_, AppState>) -> R<usage::TodayUsage> {
+    let lib = state.lib()?;
+    let s = settings::load(&*lib.conn()?)?;
+    let models: Vec<&str> = gemini::MODELS.iter().map(|m| m.0).collect();
+    let c = lib.conn()?;
+    usage::today_now(&c, &models, &s.gemini_limits)
+}
+
+/// 키 저장 전에 실제로 확인한다 (모델 목록 요청). 확인에 성공하면 운영체제 보안 저장소에 저장한다.
+#[tauri::command]
+pub async fn gemini_key_set(state: State<'_, AppState>, key: String) -> R<Value> {
+    let key = gemini::validate_key_format(&key)?;
+    let client = gemini::Gemini::with_base(&gemini_base(), &key)?;
+    let available = client.verify().await?;
+    crate::keystore::set(&state.config_dir, &key)?;
+    Ok(json!({"masked": gemini::mask_key(&key), "models": model_availability(&available)}))
+}
+
+fn model_availability(available: &[String]) -> Vec<Value> {
+    gemini::MODELS.iter().map(|(m, _)| json!({"id": m, "available": available.iter().any(|a| a == m)})).collect()
+}
+
+#[tauri::command]
+pub async fn gemini_key_verify(state: State<'_, AppState>) -> R<Value> {
+    let key = crate::keystore::get(&state.config_dir)?.ok_or_else(|| AppError::Invalid("저장된 Gemini API 키가 없습니다".into()))?;
+    let available = gemini::Gemini::with_base(&gemini_base(), &key)?.verify().await?;
+    Ok(json!({"masked": gemini::mask_key(&key), "models": model_availability(&available)}))
+}
+
+#[tauri::command]
+pub async fn gemini_key_delete(state: State<'_, AppState>) -> R<()> {
+    crate::keystore::delete(&state.config_dir)?;
+    // 키를 지우면 로컬 AI로 되돌린다
+    if let Ok(lib) = state.lib() {
+        let c = lib.conn()?;
+        let mut s = settings::load(&c)?;
+        s.provider = "ollama".into();
+        settings::save(&c, &s)?;
+    }
+    Ok(())
+}
+
+/// 데이터 전송 안내 동의(또는 철회). 동의를 철회하면 로컬 AI로 되돌린다.
+#[tauri::command]
+pub async fn gemini_consent(state: State<'_, AppState>, accept: bool) -> R<settings::Settings> {
+    let lib = state.lib()?;
+    let c = lib.conn()?;
+    let mut s = settings::load(&c)?;
+    if accept {
+        s.gemini_consent_at = Some(prh_core::now());
+    } else {
+        s.gemini_consent_at = None;
+        s.provider = "ollama".into();
+    }
+    settings::save(&c, &s)
 }

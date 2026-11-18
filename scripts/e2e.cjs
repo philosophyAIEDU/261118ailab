@@ -137,6 +137,35 @@ async function step(name, fn) {
     await waitFor('초안', async () => (await bodyText()).includes('참고문헌 (등록된 서지정보 기준)'), 90000);
     await shot('11-review');
   });
+  if (process.env.E2E_GEMINI) await step('Gemini API 선택·동의·키 저장·검색·사용량', async () => {
+    await nav('설정');
+    await waitFor('AI 탭', async () => (await bodyText()).includes('답변 생성 AI 선택'), 20000);
+    await click(await xp(`//button[@role="radio" and contains(., "Gemini API")]`));
+    await waitFor('동의 창', async () => (await bodyText()).includes('Google로 전송되는 것'));
+    await shot('13-gemini-consent');
+    await click(await xp(`//label[contains(., "위 내용을 확인했으며")]//input`));
+    await click(await xp(btn('동의하고 Gemini 사용')));
+    await waitFor('키 입력', async () => (await xps('//input[@type="password"]')).length > 0);
+    await type(await xp('//input[@type="password"]'), 'AIzaFAKE_E2E_TEST_KEY_1234567890');
+    await click(await xp(btn('확인 후 저장')));
+    await waitFor('키 저장', async () => (await bodyText()).includes('저장된 키'), 20000);
+    if ((await bodyText()).includes('E2E_TEST_KEY')) throw new Error('키 원문이 화면에 노출됨');
+    await sleep(800);
+    await shot('14-gemini-settings');
+    await nav('AI 연구 검색');
+    await waitFor('배너', async () => (await bodyText()).includes('Gemini API 사용 중'));
+    const ta = await css('textarea');
+    await exec('arguments[0].value=""', [{ [E]: ta }]);
+    await type(ta, '비판적 사고 성향 향상 효과');
+    await click(await xp(`//button[normalize-space(.)="검색"]`));
+    await waitFor('Gemini 답변', async () => (await bodyText()).includes('(Gemini API)'), 60000);
+    await waitFor('사용량 1회', async () => /오늘 무료 사용 1 \/ 500회/.test(await bodyText()), 10000);
+    await shot('15-gemini-search');
+    await nav('설정');
+    await waitFor('AI 탭', async () => (await bodyText()).includes('답변 생성 AI 선택'), 20000);
+    await click(await xp(`//button[@role="radio" and contains(., "로컬 AI (Ollama)")]`));
+    await waitFor('로컬 전환', async () => (await bodyText()).includes('로컬 AI로 전환했습니다'), 10000);
+  });
   await step('설정 — 보안·업데이트 화면', async () => {
     await nav('설정');
     await click(await xp(`//button[@role="tab" and contains(., "업데이트")]`));

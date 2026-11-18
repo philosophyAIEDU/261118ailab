@@ -10,6 +10,7 @@
 | PDF 본문 | `pdf-extract` + `lopdf` (Rust, 쪽 단위) | 쪽 번호 보존, 한글 CID 글꼴 지원 확인 |
 | PDF 표시 | PDF.js 5 (`pdfjs-dist`), CMap·표준 글꼴 로컬 포함 | 오프라인 동작, 텍스트 레이어로 선택·하이라이트 |
 | 로컬 AI | Ollama HTTP API (127.0.0.1) | 사용자가 모델을 고르고 내려받기 쉬움, 임베딩·생성 모두 지원 |
+| 클라우드 AI (선택) | Gemini API REST(SSE 스트리밍) | 사양이 낮은 컴퓨터용 대안. `llm.rs`가 Ollama/Gemini를 같은 방식으로 감싸고, 사용량은 `usage.rs`(태평양 시간 일 단위)에 기록 |
 | 그래프 | d3-force + SVG | 가볍고 제어하기 쉬움 |
 | 문서 생성 | docx-rs, rust_xlsxwriter, csv | 실제 DOCX/XLSX 파일 생성 |
 | 배포 | GitHub Actions + `tauri-action` + GitHub Releases | 서명된 업데이트 산출물(latest.json) 자동 생성 |
@@ -65,5 +66,6 @@
 | 127.0.0.1:11434 (Ollama) | 임베딩·답변 생성·모델 관리 | 로컬 프로세스에만 |
 | ollama.com (Ollama가 접속) | 모델 내려받기 | 없음 |
 | github.com | 업데이트 확인·내려받기 | 없음 (버전·OS 정보만) |
+| generativelanguage.googleapis.com | **사용자가 Gemini를 선택·동의한 경우만** 답변 생성 | 질문과 검색된 발췌 문단 (PDF 전체·노트·임베딩 없음) |
 
 Ollama 클라이언트는 루프백 주소만 허용하고 시스템 프록시를 쓰지 않으며, 클라우드 모델(`*-cloud`)은 차단한다.

@@ -11,8 +11,10 @@ pub mod demo;
 pub mod error;
 pub mod export;
 pub mod extract;
+pub mod gemini;
 pub mod graph;
 pub mod library;
+pub mod llm;
 pub mod metadata;
 pub mod models;
 pub mod notes;
@@ -24,6 +26,7 @@ pub mod review;
 pub mod search;
 pub mod settings;
 pub mod text;
+pub mod usage;
 
 pub use error::{AppError, AppResult};
 pub use rusqlite;

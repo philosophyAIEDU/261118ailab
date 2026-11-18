@@ -3,7 +3,8 @@
 //! 논문마다 항목별 관련 문단을 검색해 로컬 AI에게 주고, JSON으로 항목 값과 근거 번호를 받는다.
 //! 근거 번호가 실제 제공한 문단이 아니거나 비어 있으면 그 칸은 "원문에서 확인되지 않음"으로 둔다.
 use crate::error::{AppError, AppResult};
-use crate::ollama::{ChatMessage, Ollama};
+use crate::llm::Llm;
+use crate::ollama::ChatMessage;
 use crate::rag::{self, Source};
 use crate::search;
 use crate::text;
@@ -164,8 +165,7 @@ pub fn parse_cells(raw: &str, sources: &[Source], aspects: &[&Aspect]) -> std::c
 
 pub async fn run(
     db: &Mutex<Connection>,
-    ollama: &Ollama,
-    model: &str,
+    llm: &Llm,
     paper_ids: &[String],
     aspect_keys: &[String],
     title: &str,
@@ -193,7 +193,7 @@ pub async fn run(
             continue;
         }
         let sources = rag::to_sources(&hits);
-        match ollama.chat(model, &messages(&paper.title, &sources, &aspects), 0.1, Some(8192), true, cancel.clone(), |_| {}).await {
+        match llm.chat(&messages(&paper.title, &sources, &aspects), 0.1, Some(8192), true, cancel.clone(), |_| {}).await {
             Ok(raw) => col.cells = parse_cells(&raw, &sources, &aspects),
             Err(AppError::Cancelled) => return Err(AppError::Cancelled),
             Err(e) => {
@@ -211,7 +211,7 @@ pub async fn run(
         title: if title.trim().is_empty() { format!("논문 비교 ({}편)", paper_ids.len()) } else { title.trim().to_string() },
         aspects: aspects.iter().map(|a| (a.key.to_string(), a.label.to_string())).collect(),
         columns,
-        model: model.to_string(),
+        model: llm.label(),
         created_at: crate::now(),
     };
     let conn = db.lock().map_err(|_| AppError::Db("DB 잠금 오류".into()))?;

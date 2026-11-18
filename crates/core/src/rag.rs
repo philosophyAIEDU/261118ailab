@@ -8,6 +8,7 @@
 //! 6. 인용 검증 — 실제 검색된 출처 번호만 인정, 존재하지 않는 번호·논문 표기는 제거
 //! 7. 원문 연결 — 각 인용은 실제 논문 ID와 PDF 쪽 번호를 가진다
 use crate::error::{AppError, AppResult};
+use crate::llm::Llm;
 use crate::ollama::{ChatMessage, Ollama};
 use crate::search::{self, Hit, Mode, SearchParams, VectorIndex};
 use crate::text;
@@ -249,8 +250,10 @@ pub fn delete_search(conn: &Connection, id: &str) -> AppResult<()> {
 }
 
 pub struct AiConfig<'a> {
+    /// 답변 생성 (없으면 검색된 원문만 보여 준다)
+    pub llm: Option<&'a Llm>,
+    /// 질문 임베딩용 로컬 Ollama
     pub ollama: &'a Ollama,
-    pub chat_model: Option<String>,
     pub embed_model: Option<String>,
     pub index: Option<&'a VectorIndex>,
 }
@@ -285,7 +288,7 @@ pub async fn ask(db: &Mutex<Connection>, ai: &AiConfig<'_>, req: &AskRequest, ca
         other_sources: vec![],
         removed_markers: 0,
         removed_references: vec![],
-        model: ai.chat_model.clone().unwrap_or_default(),
+        model: ai.llm.map(|l| l.label()).unwrap_or_default(),
         mode_used: outcome.mode_used,
         notice: outcome.notice.clone(),
         created_at: crate::now(),
@@ -296,14 +299,14 @@ pub async fn ask(db: &Mutex<Connection>, ai: &AiConfig<'_>, req: &AskRequest, ca
         save(&conn, &result)?;
         return Ok(result);
     }
-    let Some(model) = ai.chat_model.clone() else {
+    let Some(llm) = ai.llm else {
         result.status = "no_ai".into();
         result.answer = "답변 생성 모델이 선택되지 않아 검색된 원문만 표시합니다. 설정 > AI 모델에서 답변 생성 모델을 선택해 주세요.".into();
         result.other_sources = sources;
         return Ok(result);
     };
     let messages = build_messages(question, &sources);
-    let raw = match ai.ollama.chat(&model, &messages, 0.2, Some(8192), false, cancel, on_token).await {
+    let raw = match llm.chat(&messages, 0.2, Some(8192), false, cancel, on_token).await {
         Ok(r) => r,
         Err(AppError::Cancelled) => return Err(AppError::Cancelled),
         Err(e) => {

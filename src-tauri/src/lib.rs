@@ -1,5 +1,6 @@
 //! 교수님만의 AI 연구실 (Philosophy Research Hub) — 데스크톱 앱 진입점.
 mod commands;
+mod keystore;
 mod state;
 mod updater;
 
@@ -102,6 +103,11 @@ pub fn run() {
             commands::backup_create,
             commands::backup_inspect,
             commands::backup_restore,
+            commands::gemini_usage,
+            commands::gemini_key_set,
+            commands::gemini_key_verify,
+            commands::gemini_key_delete,
+            commands::gemini_consent,
             updater::update_check,
             updater::update_install,
             updater::app_restart,

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { CloudBanner } from '../components/AiProvider';
 import { ExportButtons, PaperPicker } from '../components/common';
-import { api, errMsg, newJob, onJob, type Review as R } from '../lib/api';
+import { api, errMsg, newJob, onJob, type Review as R, type Settings, type TodayUsage } from '../lib/api';
 import { fmtDate } from '../lib/format';
 import { useOpenSource } from '../lib/nav';
 import { Badge, Button, Card, Empty, Field, inputCls, PageHeader, useToast } from '../lib/ui';
@@ -17,13 +18,15 @@ export default function Review() {
   const [list, setList] = useState<R[]>([]);
   const [cur, setCur] = useState<R | null>(null);
   const job = useRef<string | null>(null);
-  useEffect(() => { api.reviewList().then(setList); }, []);
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [usage, setUsage] = useState<TodayUsage | null>(null);
+  useEffect(() => { api.reviewList().then(setList); api.settings().then(setSettings).catch(() => {}); api.geminiUsage().then(setUsage).catch(() => {}); }, []);
   const run = async () => {
     const id = newJob();
     job.current = id;
     setBusy(true);
     setStream('');
-    const un = await onJob(id, (e) => e.stage === 'token' && setStream((s) => s + e.message));
+    const un = await onJob(id, (e) => { if (e.stage === 'token') setStream((s) => s + e.message); if (e.stage === 'notice') setStream((s) => s + `\n(${e.message})\n`); });
     try {
       const r = await api.reviewRun(papers, topic, id);
       setCur(r);
@@ -39,6 +42,7 @@ export default function Review() {
   return (
     <div>
       <PageHeader title="문헌고찰 지원" subtitle="선택한 논문만으로 주제별 분류, 연구 흐름·방법론·결과·한계 비교, 연구 공백 후보, 문헌고찰 개요 초안을 만듭니다. 결과는 검토용 초안입니다." />
+      <CloudBanner settings={settings} usage={usage} />
       <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
         <Card title="논문 선택 (2~15편)"><PaperPicker selected={papers} onChange={setPapers} max={15} /></Card>
         <Card title="문헌고찰 주제">

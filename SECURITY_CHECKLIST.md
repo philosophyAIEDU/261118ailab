@@ -4,8 +4,8 @@
 |---|---|---|---|
 | 1 | 연구자료 외부 전송 기본 금지 | ✅ | Ollama 클라이언트는 루프백만 허용(`Ollama::with_host`, 테스트 `only_loopback_allowed`), 그 외 네트워크는 업데이트(GitHub)·모델 내려받기(Ollama)뿐 |
 | 2 | 로컬 요청의 프록시 우회 | ✅ | `reqwest::Client::builder().no_proxy()` |
-| 3 | 사용자 승인 없는 클라우드 AI 금지 | ✅ | 기능 없음, `cloud_ai_enabled`는 항상 false로 저장, Ollama 클라우드 모델(`*-cloud`) 차단·원격 응답 감지 시 중단 |
-| 4 | API 키 안전 보관 | ➖ | 현재 API 키를 쓰는 기능 없음. 클라우드 연동 추가 시 OS 키체인 사용 예정 |
+| 3 | 사용자 승인 없는 클라우드 AI 금지 | ✅ | 기본은 로컬. Gemini는 사용자가 선택 + 전송 내용·무료 티어 데이터 이용·비용 안내 동의(`gemini_consent_at`) + 키 저장 후에만 사용, 동의 없이 설정 저장 불가(테스트 `gemini_requires_consent_and_defaults_are_local`). 전송 범위는 질문과 발췌 문단만, 임베딩은 항상 로컬. Gemini 주소는 Google로 고정(시험용 루프백만 예외). Ollama 클라우드 모델(`*-cloud`) 차단 |
+| 4 | API 키 안전 보관 | ✅ | Windows 자격 증명 관리자·macOS 키체인(keyring), Linux 개발용은 0600 파일. DB·백업·로그 미포함, 헤더로만 전송(URL에 넣지 않음), 화면에는 앞뒤 4자만 표시 |
 | 5 | 파일 경로 검증 | ✅ | DB 저장 경로는 상대 경로만, `..`·절대 경로 거부(`paths::resolve_stored`), 복원 시 zip slip 방지, 내보내기 경로는 절대 경로·확장자 확인·연구실 내부 폴더 금지, 연구실 폴더는 빈 폴더 또는 기존 연구실만 |
 | 6 | PDF 내 악성 지시문(프롬프트 주입) 방어 | ✅ | `<source>` 격리·태그 무력화·지침, 의심 문장 표시, 답변의 링크·이미지 미렌더링 (`RAG_DESIGN.md` §4) |
 | 7 | 원본 파일 무결성 | ✅ | 원본은 읽기만, 연구실에 사본 저장, 삭제 시 사본만 삭제(테스트 `import_dedupe_search_delete_keeps_original`) |

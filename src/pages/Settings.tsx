@@ -1,5 +1,6 @@
 import { ask as confirmDlg } from '@tauri-apps/plugin-dialog';
 import { useCallback, useEffect, useState } from 'react';
+import { ProviderSection } from '../components/AiProvider';
 import { UpdateDialog } from '../components/UpdateDialog';
 import { api, errMsg, newJob, onJob, type Settings } from '../lib/api';
 import { pickBackup, pickFolder, saveBackup } from '../lib/dialogs';
@@ -79,6 +80,9 @@ function AiTab() {
   const hw = st.hardware;
   return (
     <div className="space-y-5">
+      <ProviderSection settings={s} gemini={st.gemini} onChanged={load} localReady={st.health.running && !!s.chat_model} />
+      <h2 className="pt-2 text-lg font-semibold text-navy">로컬 AI (Ollama) — 모델 선택·내려받기</h2>
+      <p className="-mt-3 text-sm text-muted">로컬 AI 답변 모델과, 의미 검색에 쓰는 임베딩 모델을 관리합니다. Gemini를 선택해도 의미 검색 색인은 항상 이 컴퓨터의 임베딩 모델로 만듭니다.</p>
       <Card title="로컬 AI 엔진 (Ollama)">
         {st.health.running ? (
           <p className="text-sm">이 컴퓨터에서 Ollama가 실행 중입니다 <Badge tone="teal">v{st.health.version}</Badge> · 주소 127.0.0.1:{s.ollama_port}</p>
@@ -116,7 +120,7 @@ function AiTab() {
       </Card>
       <Card title="역할별 모델 선택">
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="1. 답변 생성 모델" hint="AI 검색 답변, 논문 비교, 노트 초안, 문헌고찰">
+          <Field label="1. 로컬 답변 생성 모델" hint={s.provider === 'gemini' ? '현재 Gemini API로 답변을 생성합니다. 로컬 AI로 전환하면 이 모델을 사용합니다.' : 'AI 검색 답변, 논문 비교, 노트 초안, 문헌고찰'}>
             <select className={inputCls} value={s.chat_model ?? ''} onChange={(e) => save({ chat_model: e.target.value || null })}>
               <option value="">선택 안 함</option>{chats.map((m) => <option key={m.name} value={m.name}>{m.name} {m.parameter_size ? `(${m.parameter_size})` : ''}</option>)}
               {s.chat_model && !chats.some((m) => m.name === s.chat_model) && <option value={s.chat_model}>{s.chat_model} (설치 확인 안 됨)</option>}
@@ -328,8 +332,9 @@ function SecurityTab() {
         <ul className="list-disc space-y-1.5 pl-5 text-sm">
           <li>연구자료(PDF 사본, 메타데이터, 노트, 검색 색인, 벡터)는 이 컴퓨터의 연구실 폴더에만 저장됩니다.</li>
           <li>AI는 이 컴퓨터에서 실행되는 Ollama(127.0.0.1)만 사용합니다. 시스템 프록시를 거치지 않으며 다른 주소로는 연결하지 않습니다.</li>
-          <li><b>클라우드 AI: 사용 안 함.</b> 이 버전에는 외부 AI 서비스로 연구자료를 보내는 기능이 없습니다. 향후 추가되더라도 교수님이 명시적으로 켜야 하며, 전송되는 데이터와 비용을 사전에 안내합니다.</li>
-          <li>인터넷을 사용하는 경우: ① AI 모델 내려받기(Ollama가 ollama.com에서), ② 업데이트 확인·설치(GitHub Releases). 두 경우 모두 연구자료는 전송되지 않습니다.</li>
+          <li><b>클라우드 AI(Gemini API)는 기본으로 꺼져 있습니다.</b> 교수님이 설정에서 직접 선택하고 데이터 전송 안내에 동의한 뒤 API 키를 넣어야만 사용합니다. 이때 질문과 검색된 관련 문단(발췌)만 Google로 전송되며, PDF 전체·노트·의미 검색 색인은 보내지 않습니다. 무료 티어는 Google이 입력 내용을 제품 개선에 사용할 수 있습니다.</li>
+          <li>Gemini API 키는 운영체제 보안 저장소(Windows 자격 증명 관리자·macOS 키체인)에만 보관하며 연구실 백업·로그에 넣지 않습니다.</li>
+          <li>인터넷을 사용하는 경우: ① AI 모델 내려받기(Ollama가 ollama.com에서), ② 업데이트 확인·설치(GitHub Releases), ③ Gemini API를 선택한 경우의 답변 생성. ①②에서는 연구자료가 전송되지 않습니다.</li>
           <li>원본 파일은 수정하거나 삭제하지 않습니다. 연구실에서 삭제해도 연구실 안의 사본과 기록만 지워집니다.</li>
           <li>PDF 안에 AI에게 지시하는 문장(프롬프트 주입)이 있어도 연구자료로만 취급하도록 처리하고, 의심 문장이 있는 출처는 “주의” 표시를 합니다.</li>
           <li>오류 메시지와 기록에는 연구자료 원문을 넣지 않습니다.</li>

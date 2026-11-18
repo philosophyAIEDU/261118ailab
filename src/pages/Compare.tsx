@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { CloudBanner } from '../components/AiProvider';
 import { ExportButtons, PaperPicker } from '../components/common';
-import { api, errMsg, newJob, onJob, type Comparison } from '../lib/api';
+import { api, errMsg, newJob, onJob, type Comparison, type Settings, type TodayUsage } from '../lib/api';
 import { fmtDate } from '../lib/format';
 import { useNav, useOpenSource } from '../lib/nav';
 import { Badge, Button, Card, cx, Empty, Field, inputCls, PageHeader, Progress, useToast } from '../lib/ui';
@@ -61,7 +62,12 @@ export default function Compare() {
   const [cur, setCur] = useState<Comparison | null>(null);
   const [prog, setProg] = useState<{ done: number; total: number; message: string } | null>(null);
   const job = useRef<string | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [usage, setUsage] = useState<TodayUsage | null>(null);
+  const [notice, setNotice] = useState('');
   useEffect(() => {
+    api.settings().then(setSettings).catch(() => {});
+    api.geminiUsage().then(setUsage).catch(() => {});
     api.compareAspects().then((a) => { setAspects(a); setSelAspects(a.map((x) => x.key)); });
     api.compareList().then((l) => { setList(l); });
   }, []);
@@ -69,7 +75,8 @@ export default function Compare() {
     const id = newJob();
     job.current = id;
     setProg({ done: 0, total: papers.length, message: '준비 중' });
-    const un = await onJob(id, (e) => setProg({ done: e.done, total: e.total, message: e.message }));
+    setNotice('');
+    const un = await onJob(id, (e) => (e.stage === 'notice' ? setNotice(e.message) : setProg({ done: e.done, total: e.total, message: e.message })));
     try {
       const c = await api.compareRun(papers, selAspects, title, id);
       setCur(c);
@@ -80,11 +87,14 @@ export default function Compare() {
     } finally {
       un();
       setProg(null);
+      setNotice('');
+      api.geminiUsage().then(setUsage).catch(() => {});
     }
   };
   return (
     <div>
       <PageHeader title="논문 비교" subtitle="논문 2~10편을 골라 연구 목적·방법·결과·한계 등을 항목별로 비교합니다. 각 칸은 원문 쪽 근거와 연결되며, 원문에서 확인되지 않는 항목은 비워 둡니다." />
+      <CloudBanner settings={settings} usage={usage} />
       <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
         <Card title="1. 비교할 논문 선택">
           <PaperPicker selected={papers} onChange={setPapers} max={10} />
@@ -103,6 +113,8 @@ export default function Compare() {
             {prog && <Button onClick={() => job.current && api.jobCancel(job.current)}>중단</Button>}
             <span className="text-xs text-muted">로컬 AI가 논문마다 관련 문단을 읽고 정리합니다 (논문 수에 따라 몇 분 걸릴 수 있음)</span>
           </div>
+          {settings?.provider === 'gemini' && papers.length > 0 && <p className="mt-2 text-xs text-[#4b3a72]">Gemini 무료 요청을 논문 1편당 1회, 이번에 {papers.length}회 사용합니다. 분당 한도에 맞춰 자동으로 간격을 둡니다.</p>}
+          {notice && <p className="mt-2 text-xs text-[#7a5b22]">{notice}</p>}
           {prog && <div className="mt-3"><Progress done={prog.done} total={prog.total} label={prog.message ? `분석 중: ${prog.message}` : '분석 중'} /></div>}
           <button className="mt-3 text-xs text-violet underline" onClick={() => go('review')}>선택한 논문으로 문헌고찰 개요 만들기 →</button>
         </Card>

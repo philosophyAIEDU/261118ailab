@@ -32,9 +32,16 @@ export interface Review { id: string; title: string; topic: string; paper_ids: s
 export interface GNode { id: string; kind: 'paper' | 'note' | 'project' | 'topic' | 'concept'; label: string; ref_id: string; weight: number }
 export interface GEdge { id: string; source: string; target: string; kind: 'citation' | 'topic' | 'keyword' | 'user' | 'ai_suggested'; label: string; score: number | null; page: number | null }
 export interface Annotation { id: string; paper_id: string; page: number; kind: 'highlight' | 'memo' | 'bookmark'; text: string; note: string; color: string; rects: { x: number; y: number; w: number; h: number }[]; created_at: string }
-export interface Settings { chat_model: string | null; embed_model: string | null; rerank_model: string | null; ollama_port: number; update_channel: 'stable' | 'beta'; auto_check_updates: boolean; cloud_ai_enabled: boolean; top_k: number }
+export interface Limits { rpm: number; rpd: number }
+export interface Settings {
+  chat_model: string | null; embed_model: string | null; rerank_model: string | null; ollama_port: number; update_channel: 'stable' | 'beta';
+  auto_check_updates: boolean; cloud_ai_enabled: boolean; top_k: number;
+  provider: 'ollama' | 'gemini'; gemini_model: string; gemini_consent_at: string | null; gemini_limits: Record<string, Limits>;
+}
+export interface ModelUsage { model: string; requests: number; input_tokens: number; output_tokens: number; errors: number; limits: Limits; remaining: number }
+export interface TodayUsage { day: string; reset_at: string; models: ModelUsage[]; history: [string, number][] }
 export interface ImportOutcome { file_name: string; source_path: string; status: 'added' | 'duplicate' | 'failed' | 'updated'; paper_id: string | null; message: string; warnings: string[] }
-export interface JobEvent { id: string; kind: string; stage: 'progress' | 'token' | 'done' | 'error'; done: number; total: number; message: string; data: any }
+export interface JobEvent { id: string; kind: string; stage: 'progress' | 'token' | 'notice' | 'done' | 'error'; done: number; total: number; message: string; data: any }
 export type ExportFormat = 'docx' | 'xlsx' | 'csv' | 'md' | 'txt' | 'bib';
 export type ExportTarget =
   | { target: 'papers'; ids?: string[] } | { target: 'comparison'; id: string } | { target: 'notes'; ids?: string[] }
@@ -111,6 +118,11 @@ export const api = {
   updateCheck: (channel: string) => call<any>('update_check', { channel }),
   updateInstall: (job: string) => call<void>('update_install', { job }),
   restart: () => call<void>('app_restart'),
+  geminiUsage: () => call<TodayUsage>('gemini_usage'),
+  geminiKeySet: (key: string) => call<{ masked: string; models: { id: string; available: boolean }[] }>('gemini_key_set', { key }),
+  geminiKeyVerify: () => call<{ masked: string; models: { id: string; available: boolean }[] }>('gemini_key_verify'),
+  geminiKeyDelete: () => call<void>('gemini_key_delete'),
+  geminiConsent: (accept: boolean) => call<Settings>('gemini_consent', { accept }),
 };
 
 /** 작업 이벤트 구독 (특정 job id만) */

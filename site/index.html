@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>교수님만의 AI 연구실 — 논문을 모으고, 연구의 연결을 발견하세요</title>
-  <meta name="description" content="교수님의 논문과 연구자료를 내 컴퓨터에 모으고, 로컬 AI로 검색·비교·연결하는 무료 데스크톱 프로그램. Windows·macOS. 필로소피 AI 교육 제공." />
+  <meta name="description" content="교수님의 논문과 연구자료를 내 컴퓨터에 모으고, 로컬 AI 또는 Gemini API로 검색·비교·연결하는 무료 데스크톱 프로그램. Windows·macOS. 필로소피 AI 교육 제공." />
   <meta property="og:title" content="교수님만의 AI 연구실 (Philosophy Research Hub)" />
   <meta property="og:description" content="교수님의 논문과 연구자료를 모으고, 검색하고, 비교하고, 연결하세요." />
   <meta property="og:image" content="/images/02-dashboard-demo.jpg" />
@@ -40,7 +40,7 @@
     <div class="eyebrow">필로소피 AI 교육 · 무료 데스크톱 프로그램</div>
     <h1>교수님만의 AI 연구실</h1>
     <p class="msg">교수님의 논문과 연구자료를 모으고, 검색하고, 비교하고, 연결하세요.</p>
-    <p class="sub">흩어진 PDF 논문을 내 컴퓨터 안의 연구실에 모으면, 이 컴퓨터에서 실행되는 AI가 <b>실제 논문을 근거로</b> 답하고, 근거를 누르면 해당 PDF 쪽이 열립니다. 연구자료는 외부로 전송되지 않습니다.</p>
+    <p class="sub">흩어진 PDF 논문을 내 컴퓨터 안의 연구실에 모으면, AI가 <b>실제 논문을 근거로</b> 답하고, 근거를 누르면 해당 PDF 쪽이 열립니다. AI는 <b>내 컴퓨터의 로컬 AI</b>와 <b>Gemini API 무료 티어</b> 중에서 고를 수 있습니다.</p>
     <div class="dl-row">
       <a class="dl" data-os="windows" data-dl="windows" href="#download"><span class="os-icon" aria-hidden="true">⊞</span><span><b>Windows용 다운로드</b><span class="dl-sub">확인 중…</span></span></a>
       <a class="dl" data-os="mac" data-dl="mac" href="#download"><span class="os-icon" aria-hidden="true">⌘</span><span><b>macOS용 다운로드</b><span class="dl-sub">확인 중…</span></span></a>
@@ -83,6 +83,7 @@
       <div class="card"><div class="icon i-teal">⇡</div><h3>내보내기</h3><p>논문 목록·비교표·노트·문헌고찰·프로젝트 보고서를 Word·Excel·CSV·Markdown·TXT·BibTeX로 저장합니다. 출처 쪽과 검증 상태가 함께 기록됩니다.</p></div>
       <div class="card"><div class="icon i-gold">⇄</div><h3>Zotero·Obsidian 연동</h3><p>Zotero에서 내보낸 BibTeX·RIS로 서지정보를 가져오고 중복을 정리합니다. 연구 노트는 YAML·태그·논문 링크를 갖춘 Obsidian 보관함으로 내보내며 기존 파일은 덮어쓰지 않습니다.</p></div>
       <div class="card"><div class="icon i-violet">◈</div><h3>연구 프로젝트</h3><p>주제별로 논문과 노트를 묶고, 프로젝트 논문만 대상으로 질문하거나 비교하고, 보고서로 내보냅니다.</p></div>
+      <div class="card"><div class="icon i-gold">✦</div><h3>AI 선택: 로컬 또는 Gemini <span class="tag">새 기능</span></h3><p>내 컴퓨터에서 실행되는 로컬 AI(모델 추천·내려받기)와 Google Gemini API 무료 티어(gemini-3.5-flash-lite / gemini-3.8-flash) 중에서 고릅니다. API 키는 직접 넣고, 오늘 쓴 무료 사용량을 모델별로 보여 드립니다.</p></div>
       <div class="card"><div class="icon i-navy">⟳</div><h3>백업·복원·자동 업데이트</h3><p>연구실 전체를 백업하고(암호화 선택), 검증한 뒤 복원합니다. 새 버전은 프로그램 안에서 확인하고, 전자서명을 검증한 파일만 설치합니다.</p></div>
     </div>
   </div>
@@ -101,6 +102,7 @@
       <button class="shot-tab" role="tab" aria-selected="false" data-src="/images/09-graph.jpg" data-alt="지식 그래프 화면" data-caption="지식 그래프 — 화살표는 본문에서 확인된 실제 인용, 점선은 AI가 제안한 관련성입니다.">지식 그래프</button>
       <button class="shot-tab" role="tab" aria-selected="false" data-src="/images/10-notes.jpg" data-alt="연구 노트 화면" data-caption="연구 노트 — 자동 저장, 태그·프로젝트·관련 논문 연결, [[노트 제목]] 링크와 백링크.">연구 노트</button>
       <button class="shot-tab" role="tab" aria-selected="false" data-src="/images/11-review.jpg" data-alt="문헌고찰 지원 화면" data-caption="문헌고찰 지원 — 결과는 검토용 초안이며, 연구 공백은 선택한 자료 범위의 후보로 표시합니다.">문헌고찰</button>
+      <button class="shot-tab" role="tab" aria-selected="false" data-src="/images/14-gemini-settings.jpg" data-alt="AI 선택과 Gemini 무료 사용량 화면" data-caption="AI 선택 — 로컬 AI 또는 Gemini API를 고르고, Gemini는 키 입력·모델 선택·오늘의 무료 사용량을 확인합니다. (시험용 키 화면)">AI 선택·사용량</button>
       <button class="shot-tab" role="tab" aria-selected="false" data-src="/images/03-papers.jpg" data-alt="내 논문 목록과 서지정보 편집 화면" data-caption="내 논문 — 서지정보 칸마다 출처(PDF 속성·본문 표기·자동 추정·직접 입력)를 표시합니다.">내 논문</button>
     </div>
     <div class="shot-frame"><img id="shot-img" src="/images/06-search.jpg" alt="AI 연구 검색 화면" loading="lazy" width="1440" height="715" /></div>
@@ -138,8 +140,8 @@
     <h2>연구자료는 교수님 컴퓨터에만</h2>
     <div class="grid g2" style="margin-top:24px">
       <div class="card"><h3>로컬 우선 저장</h3><ul><li>PDF 사본, 서지정보, 노트, 프로젝트, 비교 결과, 검색 색인, 설정을 <b>문서/PhilosophyResearchHub</b> 폴더에 저장합니다.</li><li>프로그램 파일과 분리되어 있어 업데이트·재설치·제거 후에도 그대로 남습니다.</li><li>원본 PDF는 읽기만 하며 수정·삭제하지 않습니다.</li></ul></div>
-      <div class="card"><h3>로컬 AI만 사용</h3><ul><li>AI는 이 컴퓨터에서 실행되는 Ollama만 사용합니다. 다른 주소로 연결하지 않습니다.</li><li>클라우드 AI는 사용하지 않습니다. Ollama의 클라우드 모델도 차단합니다.</li><li>향후 클라우드 기능이 생기더라도 교수님이 직접 켜야 하며, 전송되는 내용과 비용을 먼저 안내합니다.</li></ul></div>
-      <div class="card"><h3>인터넷을 쓰는 경우는 두 가지뿐</h3><ul><li>AI 모델 내려받기 (Ollama가 ollama.com에서)</li><li>업데이트 확인·설치 (GitHub Releases, 버전 정보만)</li></ul><p style="margin-top:8px">두 경우 모두 연구자료는 전송되지 않습니다. 계정 가입, 사용 기록 수집도 없습니다.</p></div>
+      <div class="card"><h3>기본은 로컬 AI, Gemini는 선택</h3><ul><li>기본 설정은 이 컴퓨터에서 실행되는 로컬 AI(Ollama)입니다. 연구자료가 밖으로 나가지 않습니다.</li><li>Gemini API는 교수님이 직접 고르고, 전송 내용·비용 안내에 동의하고, 키를 넣어야만 사용합니다. 이때도 질문과 관련 발췌 문단만 보내고 PDF 전체·노트는 보내지 않습니다.</li><li>Gemini 무료 티어는 Google이 입력 내용을 제품 개선에 쓸 수 있으므로, 민감한 자료에는 로컬 AI를 권장합니다.</li></ul></div>
+      <div class="card"><h3>인터넷을 쓰는 경우</h3><ul><li>AI 모델 내려받기 (Ollama가 ollama.com에서)</li><li>업데이트 확인·설치 (GitHub Releases, 버전 정보만)</li><li>Gemini API를 선택한 경우의 답변 생성</li></ul><p style="margin-top:8px">앞의 두 경우에는 연구자료가 전송되지 않습니다. 계정 가입, 사용 기록 수집도 없습니다. Gemini API 키는 운영체제 보안 저장소에만 보관합니다.</p></div>
       <div class="card"><h3>문서 속 숨은 지시문 방어</h3><p>PDF 안에 “이전 지시를 무시하라” 같은 문장이 있어도 AI가 따르지 않도록 자료와 지시를 분리하고, 의심 문장이 있는 출처에는 “주의” 표시를 합니다.</p></div>
     </div>
     <p class="note teal" style="margin-top:20px">로컬 AI를 쓴다고 보안이 자동으로 완벽해지지는 않습니다. 컴퓨터 암호, 디스크 암호화, 백업 파일 보관에도 신경 써 주세요.</p>
@@ -162,6 +164,7 @@
         </tbody>
       </table>
     </div>
+    <div class="note teal" style="margin-top:16px">컴퓨터 사양이 낮다면 <b>Gemini API 무료 티어</b>를 쓸 수 있습니다. <b>gemini-3.5-flash-lite</b>는 하루 약 500회, <b>gemini-3.8-flash</b>는 하루 약 20회까지 무료입니다(2026년 11월 공개 자료 기준, 계정마다 다를 수 있음). 프로그램이 오늘 사용량을 모델별로 보여 드립니다.</div>
     <p class="shot-note">용량은 Ollama 기본 태그의 근사값이며, 실제 속도는 컴퓨터 상태에 따라 다릅니다. 저장 공간은 프로그램 약 50MB + 논문 + AI 모델 용량이 필요합니다.</p>
   </div>
 </section>
@@ -173,8 +176,8 @@
     <h2>3단계면 준비됩니다</h2>
     <div class="grid g3" style="margin-top:24px">
       <div class="card"><div class="icon i-navy">1</div><h3>프로그램 설치</h3><p><b>Windows</b>: 내려받은 <kbd>…setup.exe</kbd>를 실행합니다. 관리자 권한 없이 현재 사용자에게 설치되고, 시작 메뉴에 “교수님만의 AI 연구실”이 생깁니다.</p><p style="margin-top:8px"><b>macOS</b>: <kbd>.dmg</kbd>를 열고 앱을 “응용 프로그램” 폴더로 끌어다 놓습니다.</p></div>
-      <div class="card"><div class="icon i-gold">2</div><h3>Ollama 설치 (AI용)</h3><p><a href="https://ollama.com/download" rel="noopener">ollama.com</a>에서 Ollama를 설치하고 실행합니다. AI 기능을 쓰지 않는다면 건너뛰어도 됩니다.</p></div>
-      <div class="card"><div class="icon i-teal">3</div><h3>추천 모델 받기</h3><p>프로그램의 <b>설정 → AI 모델</b>에서 추천 모델을 내려받고, 역할별 모델을 고른 뒤 <b>의미 검색 색인 만들기</b>를 누릅니다.</p></div>
+      <div class="card"><div class="icon i-gold">2</div><h3>AI 고르기</h3><p><b>로컬 AI</b>: <a href="https://ollama.com/download" rel="noopener">Ollama</a>를 설치하고 실행합니다.<br /><b>Gemini API</b>: <a href="https://aistudio.google.com/apikey" rel="noopener">Google AI Studio</a>에서 무료 API 키를 만듭니다.</p></div>
+      <div class="card"><div class="icon i-teal">3</div><h3>설정에서 연결</h3><p><b>설정 → AI 모델 → 답변 생성 AI 선택</b>에서 로컬 AI 모델을 내려받아 고르거나, Gemini를 고르고 안내에 동의한 뒤 키를 붙여 넣습니다.</p></div>
     </div>
     <details style="margin-top:20px">
       <summary>Windows에서 “Windows의 PC 보호” 경고가 나와요</summary>
@@ -255,7 +258,8 @@
     <h2>궁금한 점</h2>
     <div style="margin-top:20px">
       <details><summary>정말 무료인가요?</summary><div><p>네. 필로소피 AI 교육이 MIT 라이선스로 무료 제공합니다. AI 모델도 Ollama를 통해 무료로 내려받는 공개 모델을 사용합니다(모델마다 라이선스가 다르며, 프로그램에서 표시합니다).</p></div></details>
-      <details><summary>인터넷 없이도 쓸 수 있나요?</summary><div><p>네. AI 모델을 한 번 내려받은 뒤에는 논문 등록, 검색, AI 답변, 비교, 노트 등 모든 기능이 인터넷 없이 동작합니다. 업데이트 확인만 인터넷이 필요합니다.</p></div></details>
+      <details><summary>Gemini API는 어떻게 쓰나요? 정말 무료인가요?</summary><div><p><a href="https://aistudio.google.com/apikey" rel="noopener">Google AI Studio</a>에서 Google 계정으로 API 키를 만들어 <b>설정 → AI 모델</b>에 붙여 넣으면 됩니다. 결제 정보를 연결하지 않은 키는 무료 티어로 동작하며 요금이 청구되지 않습니다. 대신 하루·분당 사용 한도가 있고(한국 시간 오후 4~5시 초기화), 무료 티어에서는 Google이 입력 내용을 제품 개선에 사용할 수 있습니다. 결제를 연결한 프로젝트의 키를 쓰면 요금이 나올 수 있습니다.</p></div></details>
+      <details><summary>인터넷 없이도 쓸 수 있나요?</summary><div><p>로컬 AI를 쓰면 네. AI 모델을 한 번 내려받은 뒤에는 모든 기능이 인터넷 없이 동작합니다. Gemini API를 선택한 경우에는 AI 답변에 인터넷이 필요합니다.</p></div></details>
       <details><summary>AI 없이도 쓸 수 있나요?</summary><div><p>네. Ollama가 없어도 논문 등록, 서지정보 정리, 키워드 검색, PDF 보기·주석, 노트, 프로젝트, 지식 그래프(AI 제안 제외), 내보내기, 백업을 사용할 수 있습니다.</p></div></details>
       <details><summary>한국어 논문도 잘 찾나요?</summary><div><p>한국어는 띄어쓰기 단위로만 찾으면 “비판적사고는” 같은 표현에서 “비판적”을 놓치기 쉬워, 두 글자 단위로 색인해 부분 일치도 찾을 수 있게 했습니다. 의미 검색에는 다국어 임베딩 모델(bge-m3)을 추천합니다.</p></div></details>
       <details><summary>논문을 몇 편까지 넣을 수 있나요?</summary><div><p>정해진 상한은 없습니다. 시험에서 120편(240쪽)을 약 13초에 등록했고, 키워드 검색은 한 번에 수 밀리초 안에 끝났습니다. 수천 편 규모는 아직 따로 시험하지 않았습니다.</p></div></details>
@@ -278,7 +282,7 @@
       <a class="dl" data-os="mac" data-dl="mac" href="#"><span class="os-icon" aria-hidden="true">⌘</span><span><b>macOS 12 이상 (Apple 칩·Intel)</b><span class="dl-sub">확인 중…</span></span></a>
     </div>
     <ul id="asset-list"></ul>
-    <p style="margin-top:18px;font-size:14.5px;color:rgba(255,255,255,.7)">변경 사항은 <a class="light" id="release-link" href="https://github.com/philosophyAIEDU/261118ailab/releases" rel="noopener">릴리스 노트</a>에서 볼 수 있습니다. AI 기능에는 <a class="light" href="https://ollama.com/download" rel="noopener">Ollama</a>가 필요합니다.</p>
+    <p style="margin-top:18px;font-size:14.5px;color:rgba(255,255,255,.7)">변경 사항은 <a class="light" id="release-link" href="https://github.com/philosophyAIEDU/261118ailab/releases" rel="noopener">릴리스 노트</a>에서 볼 수 있습니다. AI 기능에는 <a class="light" href="https://ollama.com/download" rel="noopener">Ollama</a>(로컬) 또는 <a class="light" href="https://aistudio.google.com/apikey" rel="noopener">Gemini API 키</a>(클라우드)가 필요합니다.</p>
   </div>
 </section>
 </main>
