@@ -73,3 +73,13 @@ npx tauri build            # 설치 파일 빌드
 ## 라이선스
 
 MIT © 필로소피 AI 교육. 사양 진단·모델 추천 방식은 같은 팀의 [Philosophy Local AI](https://github.com/philosophyAIEDU/261110philosophylocalai)를 참고했습니다.
+
+## 소개·다운로드 사이트 (Netlify)
+
+`site/` 폴더는 프로그램 소개와 설치 파일 다운로드를 위한 정적 웹사이트입니다(빌드 과정 없음).
+
+1. Netlify → **Add new site → Import an existing project** → 이 GitHub 저장소 선택
+2. 저장소 루트의 `netlify.toml`이 자동 적용됩니다 (Base directory `site`, 빌드 명령 없음). 배포할 브랜치를 고르고 **Deploy**.
+3. 다운로드 버튼은 `site/config.js`의 `RELEASES_REPO` 저장소에서 **최신 GitHub Release**의 `.exe`·`.dmg`를 자동으로 찾아 연결합니다. 릴리스가 없거나 접근할 수 없으면 “준비 중”으로 표시합니다.
+   - ⚠️ 저장소가 **비공개**이면 방문자가 GitHub Release 파일을 내려받을 수 없습니다(앱 내부 업데이트도 동작하지 않음). 저장소를 공개하거나, 설치 파일을 올릴 공개 저장소를 따로 만들어 `RELEASES_REPO`(와 `src-tauri/src/updater.rs`의 `REPO`, `tauri.conf.json`의 updater 주소)를 바꾸거나, `config.js`의 `MANUAL`에 직접 링크를 넣으세요.
+4. 화면 사진은 `site/images/`에 있습니다(가상 데모 연구실 화면).

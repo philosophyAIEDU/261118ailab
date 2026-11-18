@@ -1,0 +1,24 @@
+# Netlify: 소개·다운로드 사이트 (site/ 폴더의 정적 파일만 배포, 빌드 과정 없음)
+[build]
+  base = "site"
+  publish = "."
+  command = "echo '정적 사이트 — 빌드 없음'"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src https://api.github.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# 짧은 주소: /download → 다운로드 영역
+[[redirects]]
+  from = "/download"
+  to = "/#download"
+  status = 302
