@@ -1,11 +1,23 @@
-# 검증 빌드: 모든 push·PR에서 테스트하고 Windows·macOS 설치 파일(서명 없음)을 만든다.
+# 검증 빌드 — GitHub 무료 요금제 저장 공간(0.5GB)을 쓰지 않도록 설계
+#
+# - push·PR: Linux에서 테스트만 한다. 파일(아티팩트)·캐시를 저장하지 않는다.
+# - 문서·소개 사이트·실습 자료만 바뀐 커밋은 실행하지 않는다.
+# - Windows·macOS 설치 파일 시험 빌드는 Actions 화면에서 직접 실행할 때만(“Run workflow”에서 설치 파일 빌드 체크),
+#   결과 파일은 1일만 보관한다. 실제 배포 파일은 release.yml이 GitHub Releases에 올린다 (Releases는 저장 공간 한도에 포함되지 않음).
 name: build
 
 on:
   push:
     branches: ["**"]
+    paths-ignore: ["**.md", "docs/**", "site/**", "tutorial/**", "demo/gen_spec.py", "LICENSE", "netlify.toml"]
   pull_request:
+    paths-ignore: ["**.md", "docs/**", "site/**", "tutorial/**", "demo/gen_spec.py", "LICENSE", "netlify.toml"]
   workflow_dispatch:
+    inputs:
+      bundles:
+        description: "Windows·macOS 설치 파일도 시험 빌드 (결과 파일 1일 보관)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -20,9 +32,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 22 }
       - uses: dtolnay/rust-toolchain@stable
-      - uses: swatinem/rust-cache@v2
       - name: 시스템 라이브러리
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev
       - run: npm ci
@@ -36,6 +47,7 @@ jobs:
         run: cargo test -p philosophy-research-hub
 
   bundle:
+    if: github.event_name == 'workflow_dispatch' && inputs.bundles
     needs: test-linux
     strategy:
       fail-fast: false
@@ -51,11 +63,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 22 }
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-      - uses: swatinem/rust-cache@v2
       - run: npm ci
       - name: 핵심 로직 테스트 (이 운영체제에서)
         run: cargo test -p prh-core
@@ -66,3 +77,4 @@ jobs:
           name: installer-${{ matrix.os }}
           path: ${{ matrix.path }}
           if-no-files-found: error
+          retention-days: 1

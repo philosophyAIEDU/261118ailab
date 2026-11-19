@@ -33,11 +33,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 22 }
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-      - uses: swatinem/rust-cache@v2
       - run: npm ci
       - name: 핵심 로직 테스트
         run: cargo test -p prh-core
@@ -48,6 +47,7 @@ jobs:
           name: preview-${{ matrix.os }}
           path: ${{ matrix.path }}
           if-no-files-found: error
+          retention-days: 1
 
   publish:
     needs: bundle
@@ -70,6 +70,7 @@ jobs:
           cp "$(find files -name '*.dmg' | head -1)" "out/PhilosophyResearchHub_${VERSION}_universal.dmg"
           (cd out && sha256sum * > SHA256SUMS.txt)
           ls -la out
+          # 중간 파일(아티팩트)은 게시 후 바로 지워 저장 공간을 쓰지 않는다
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" out/* --clobber
           else

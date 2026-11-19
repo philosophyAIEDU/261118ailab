@@ -26,3 +26,9 @@
 - [ ] 제거 후 재설치 → `문서/PhilosophyResearchHub` 그대로인지 확인
 - [ ] 업데이트 서명 검증 실패 시 설치 거부되는지(잘못된 서명의 시험 릴리스로) 확인
 - [ ] 실제 OS에서 확인한 결과만 TEST_RESULTS.md에 “검증 완료”로 기록 (확인하지 않은 항목은 “검증 필요”)
+
+## D. GitHub 무료 요금제 유지
+- push·PR에서는 Linux 테스트만 실행하고 파일·캐시를 저장하지 않는다 (`build.yml`). 문서·사이트·실습 자료만 바뀌면 실행하지 않는다.
+- Windows·macOS 시험 빌드는 Actions → build → Run workflow에서 “설치 파일도 시험 빌드”를 체크할 때만 (결과 1일 보관).
+- 배포 파일은 GitHub Releases에 올라가며 Actions 저장 공간(무료 0.5GB)에 포함되지 않는다.
+- 저장 공간 초과 안내가 오면 Actions → cleanup → Run workflow (아티팩트·캐시 전부 삭제, Releases는 그대로).

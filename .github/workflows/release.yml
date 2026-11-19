@@ -68,11 +68,10 @@ jobs:
       - uses: actions/checkout@v4
         with: { ref: "${{ github.sha }}" }
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 22 }
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-      - uses: swatinem/rust-cache@v2
       - run: npm ci
       - name: 배포용 설정 (업데이트 산출물 + 공개키)
         shell: bash
